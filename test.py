@@ -119,9 +119,10 @@ print(X_test.shape)
 clf = OneVsRestClassifier(KNeighborsClassifier())
 clf.fit(X_train, y_train)
 prediction = clf.predict(X_test)
-clf.score(X_test, y_test)
+print(clf.score(X_test, y_test))
 print(prediction)
-
+accuracy = accuracy_score(y_test, prediction)
+print(accuracy)
 #mlModel()
 
 app = FastAPI()
@@ -132,7 +133,7 @@ templates = Jinja2Templates(directory="htmlviews")
 
 @app.get("/")
 def home(request:Request):
-    return templates.TemplateResponse("index.html",{"request":request})
+    return templates.TemplateResponse("index.html",{"request":request,"accuracy":accuracy})
 
 
 @app.post("/submitfile",response_class=HTMLResponse)
