@@ -1,29 +1,14 @@
 import uvicorn
-# from typing import Optional
 from fastapi import FastAPI, Body, Request, File, UploadFile, Form
 from fastapi import responses
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import warnings
-warnings.filterwarnings('ignore')
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn import metrics
-from sklearn.metrics import accuracy_score
-from pandas.plotting import scatter_matrix
-from sklearn.neighbors import KNeighborsClassifier
-
-import seaborn as sns
 import pdfplumber
 import re
 import aiofiles
- 
+import pickle
 
 
 def cleanResume(resumeText):
@@ -37,93 +22,19 @@ def cleanResume(resumeText):
     resumeText = re.sub('\s+', ' ', resumeText)  # remove extra whitespace
     return resumeText
 
+accuracy = 98.0
 
 
+#LOAD MODELS
+label_file = 'finalized_label2.sav'
+tfidf_file = 'finalized_tfidf2.sav'
+clf_file = 'finalized_clf2.sav'
 
-df = pd.read_csv('UpdatedResumeDataSet.csv',encoding = 'utf-8')
-#print(df.head().encode('utf-8'))
+le = pickle.load(open(label_file, 'rb'))
+cv = pickle.load(open(tfidf_file, 'rb'))
+clf = pickle.load(open(clf_file, 'rb'))
+print("Yoo done")
 
-#print(df['Category'].unique())
-
-#print(df['Category'].value_counts())
-
-plt.figure(figsize=(20,20))
-sns.countplot(y='Category',data=df)
-df['modified_resume'] =''
-df['modified_resume'] = df['Resume'].apply(lambda x: cleanResume(x))
-
-
-import nltk
-from nltk.corpus import stopwords
-from wordcloud import WordCloud
-import string
-
-stopwordsList = set(stopwords.words('english')+['``',"''"])
-sentences = df['Resume'].values   #returning only the values of the column without any axis label
-cleanedSentences = ""
-allwords =[]
-for i in range(len(sentences)):
-    cleanedText = cleanResume(sentences[i])        
-    cleanedSentences += cleanedText
-    words = nltk.word_tokenize(cleanedText)
-    for word in words:
-        if word not in stopwordsList and word not in string.punctuation:
-            allwords.append(word)
-
-# wordFreq = nltk.FreqDist(allwords)
-# mostFreq = wordFreq.most_common(30)
-# print(mostFreq)
-# wordCloud = WordCloud(width=1920, height=1080,max_font_size = 256,background_color='#6dd5ed',colormap="gist_heat").generate(cleanedSentences)
-
-# plt.figure(figsize=(10,10))
-# plt.imshow(wordCloud)
-# plt.axis("off")
-# plt.show()
-
-# from PIL import Image
-# mask = np.array(Image.open('WhatsApp Image 2021-06-27 at 19.58.09.jpeg'))
-# wordCloud = WordCloud(max_font_size = 256,background_color='white',mask=mask).generate(cleanedSentences)
-# plt.figure(figsize=(10,10))
-# plt.imshow(wordCloud)
-# plt.axis("off")
-# plt.show()
-
-#df['Category'].unique()
-
-from sklearn.preprocessing import LabelEncoder
-
-le = LabelEncoder()
-catChange = ['Category']
-for i in catChange:   
-    df[i] = le.fit_transform(df[i])
-#catChange
-
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-requiredText = df['modified_resume'].values
-cv = TfidfVectorizer(stop_words='english',max_features = 500)
-
-WordFeatures = cv.fit_transform(requiredText).toarray()
-
-
-
-from sklearn.model_selection import train_test_split
-
-requiredTarget = df['Category'].values
-X_train,X_test,y_train,y_test = train_test_split(WordFeatures,requiredTarget,random_state=0, test_size=0.2)
-print("yesss")
-print(X_train.shape)
-print(X_test.shape)
-
-
-clf = OneVsRestClassifier(KNeighborsClassifier())
-clf.fit(X_train, y_train)
-prediction = clf.predict(X_test)
-print(clf.score(X_test, y_test))
-print(prediction)
-accuracy = accuracy_score(y_test, prediction)
-print(accuracy)
-#mlModel()
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -146,12 +57,7 @@ async def func(request: Request,uploadedFile: UploadFile = File(...)):
         f.close()
     ans = solve(filepath)
     return templates.TemplateResponse("predict.html",{"request":request,"ans":ans})
-    # return{
-    #     "ans": ans
-    # }
-    
 
-    #print(content_file)
 def solve(filepath):
     resumeText = extractText(filepath)
     cleanedText = cleanResume(resumeText)
@@ -159,15 +65,13 @@ def solve(filepath):
     textp = cv.transform([text[0]]).toarray()
     prediction2 = clf.predict(textp)
     print(prediction2[0]);
-    predictedResult = le.inverse_transform(prediction2)[0]
-    #return prediction2[0].item()   numpy.int32 to int
+    predictedResult = le.inverse_transform(prediction2)[0]    
     return predictedResult
 
 def extractText(filepath):
     with pdfplumber.open(filepath) as pdf:
         first_page = pdf.pages[0]
-        resumeText = first_page.extract_text()
-        #print(resumeText)
+        resumeText = first_page.extract_text()        
         pattern = r'[0-9]'
         # # Match all digits in the string and replace them with an empty string
         resumeText= re.sub(pattern, '', resumeText)

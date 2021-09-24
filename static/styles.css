@@ -62,12 +62,13 @@
 h2{
 	font-size: 16px;
 	font-weight: 300;
-	color:red;
+	color:greenyellow;
+	text-align: center;
 }
 h1{
 	font-size: 50px;
 	font-weight: 500;
-	color: greenyellow;
+	color: goldenrod;
 	text-align: center;
 	
 }
