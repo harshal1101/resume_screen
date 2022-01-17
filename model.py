@@ -6,7 +6,7 @@ warnings.filterwarnings('ignore')
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn import metrics
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score
 from pandas.plotting import scatter_matrix
 from sklearn.neighbors import KNeighborsClassifier
 import seaborn as sns
@@ -72,7 +72,9 @@ prediction = clf.predict(X_test)
 print(clf.score(X_test, y_test))
 print(prediction)
 accuracy = round(accuracy_score(y_test, prediction),2)
-print(accuracy)
+f_score = f1_score(y_test, prediction, average='weighted')
+print("Accuracy is " + str(accuracy))
+print("Weighted-average f1-score is " + str(f_score))
 print("Model working")
 
 
